@@ -5,6 +5,41 @@ export const TIME_SLOTS = [
   '17:00', '18:00', '19:00', '20:00', '21:00', '22:00',
 ];
 
+export function getTodayDateValue(date = new Date()): string {
+  const year = String(date.getFullYear()).padStart(4, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getMaxBookingDateValue(date = new Date()): string {
+  const maxDate = new Date(date);
+  maxDate.setFullYear(maxDate.getFullYear() + 1);
+  return getTodayDateValue(maxDate);
+}
+
+export function isValidDateInput(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false;
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return day <= daysInMonth;
+}
+
+export function isDateInBookingRange(
+  value: string,
+  minDate = getTodayDateValue(),
+  maxDate = getMaxBookingDateValue()
+): boolean {
+  return isValidDateInput(value) && value >= minDate && value <= maxDate;
+}
+
 // Имитация занятых слотов: реального бэкенда нет (по условию задания),
 // поэтому детерминированно "бронируем" пару слотов на основе даты,
 // чтобы UI занятых слотов можно было продемонстрировать без сервера.
@@ -34,8 +69,10 @@ export function formatPhoneInput(value: string): string {
   const rest = digits.slice(1); // 10 цифр номера
   let result = '+7';
   if (rest.length > 0) result += ` (${rest.slice(0, 3)}`;
-  if (rest.length >= 3) result += ')';
-  if (rest.length > 3) result += ` ${rest.slice(3, 6)}`;
+  // Закрывающую скобку добавляем только вместе со следующей цифрой.
+  // Иначе при Backspace маска тут же восстанавливала скобку и не давала
+  // продолжить удаление номера.
+  if (rest.length > 3) result += `) ${rest.slice(3, 6)}`;
   if (rest.length > 6) result += `-${rest.slice(6, 8)}`;
   if (rest.length > 8) result += `-${rest.slice(8, 10)}`;
 
@@ -60,13 +97,16 @@ function validateName(value: string): string | null {
 function validateDate(value: string): string | null {
   if (!value) return 'Выберите дату';
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const picked = new Date(value);
-  picked.setHours(0, 0, 0, 0);
+  if (!isValidDateInput(value)) {
+    return 'Введите корректную дату';
+  }
 
-  if (picked.getTime() < today.getTime()) {
+  if (value < getTodayDateValue()) {
     return 'Дата не может быть раньше сегодняшней';
+  }
+
+  if (value > getMaxBookingDateValue()) {
+    return 'Бронирование доступно не более чем на год вперёд';
   }
   return null;
 }
