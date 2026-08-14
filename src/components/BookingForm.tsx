@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import styles from './BookingForm.module.css';
 import { BookingFormData, BookingStatus, FormErrors } from '@/types/booking';
-import { TIME_SLOTS, validateField, validateForm } from '@/utils/validation';
+import {
+  TIME_SLOTS,
+  formatPhoneInput,
+  getBusySlots,
+  validateField,
+  validateForm,
+} from '@/utils/validation';
 
 const EMPTY_FORM: BookingFormData = {
   name: '',
@@ -22,6 +28,15 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
 
   const today = new Date().toISOString().split('T')[0];
   const isLoading = status === 'loading';
+  const busySlots = getBusySlots(form.date);
+
+  function handleDateChange(value: string) {
+    setForm((prev) => {
+      const nextBusy = getBusySlots(value);
+      const time = nextBusy.includes(prev.time) ? '' : prev.time;
+      return { ...prev, date: value, time };
+    });
+  }
 
   function updateField<K extends keyof BookingFormData>(
     field: K,
@@ -73,8 +88,9 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
           type="tel"
           placeholder="+7 (___) ___-__-__"
           value={form.phone}
-          onChange={(e) => updateField('phone', e.target.value)}
+          onChange={(e) => updateField('phone', formatPhoneInput(e.target.value))}
           onBlur={() => handleBlur('phone')}
+          maxLength={18}
           disabled={isLoading}
         />
         {errors.phone && <p className={styles.errorText}>{errors.phone}</p>}
@@ -91,7 +107,7 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
             type="date"
             min={today}
             value={form.date}
-            onChange={(e) => updateField('date', e.target.value)}
+            onChange={(e) => handleDateChange(e.target.value)}
             onBlur={() => handleBlur('date')}
             disabled={isLoading}
           />
@@ -112,8 +128,9 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
           >
             <option value="">Выберите время</option>
             {TIME_SLOTS.map((slot) => (
-              <option key={slot} value={slot}>
+              <option key={slot} value={slot} disabled={busySlots.includes(slot)}>
                 {slot}
+                {busySlots.includes(slot) ? ' — занято' : ''}
               </option>
             ))}
           </select>
