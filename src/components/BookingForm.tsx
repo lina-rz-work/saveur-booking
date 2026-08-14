@@ -148,7 +148,7 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
           type="number"
           min={1}
           max={12}
-          value={form.guests}
+          value={form.guests.toString().replace(/^0+/, '')}
           onChange={(e) => updateField('guests', Number(e.target.value))}
           onBlur={() => handleBlur('guests')}
           disabled={isLoading}
