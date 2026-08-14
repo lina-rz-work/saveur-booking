@@ -6,8 +6,6 @@ export interface BookingFormData {
   guests: number;
 }
 
-export type BookingStatus = "idle" | "loading" | "success";
+export type BookingStatus = 'idle' | 'loading' | 'success';
 
-export type BookingField = keyof BookingFormData;
-
-export type BookingErrors = Partial<Record<BookingField, string>>;
+export type FormErrors = Partial<Record<keyof BookingFormData, string>>;
