@@ -16,6 +16,10 @@
   color: var(--color-text);
 }
 
+.input {
+  user-select: none;
+}
+
 .input,
 .select {
   width: 100%;
@@ -27,6 +31,7 @@
   background: var(--color-surface);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
 }
 
 .input:focus,

@@ -120,6 +120,9 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
             value={form.date}
             onChange={(e) => handleDateChange(e.target.value, e.currentTarget)}
             onBlur={() => handleBlur('date')}
+            onClick={(e) => {
+              e.currentTarget.showPicker?.()
+            }}
             disabled={isLoading}
           />
           {errors.date && <p className={styles.errorText}>{errors.date}</p>}
