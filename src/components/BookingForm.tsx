@@ -1,7 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import styles from './BookingForm.module.css';
 import { BookingFormData, BookingStatus, FormErrors } from '@/types/booking';
-import { TIME_SLOTS, validateField, validateForm } from '@/utils/validation';
+import { getOccupiedTimeSlots, TIME_SLOTS } from '@/utils/availability';
+import {
+  formatPhone,
+  validateField,
+  validateForm,
+} from '@/utils/validation';
 
 const EMPTY_FORM: BookingFormData = {
   name: '',
@@ -21,23 +26,40 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
   const [errors, setErrors] = useState<FormErrors>({});
 
   const today = new Date().toISOString().split('T')[0];
-  const isLoading = status === 'loading';
+  const isLoading = status !== 'idle';
+  const occupiedTimeSlots = useMemo(
+    () => getOccupiedTimeSlots(form.date),
+    [form.date]
+  );
 
   function updateField<K extends keyof BookingFormData>(
     field: K,
     value: BookingFormData[K]
   ) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
+  }
+
+  function handleDateChange(value: string) {
+    const nextOccupiedTimeSlots = getOccupiedTimeSlots(value);
+    setForm((prev) => ({
+      ...prev,
+      date: value,
+      time: nextOccupiedTimeSlots.some((slot) => slot === prev.time)
+        ? ''
+        : prev.time,
+    }));
+    setErrors((prev) => ({ ...prev, date: undefined, time: undefined }));
   }
 
   function handleBlur(field: keyof BookingFormData) {
-    const error = validateField(field, form);
+    const error = validateField(field, form, { occupiedTimeSlots });
     setErrors((prev) => ({ ...prev, [field]: error ?? undefined }));
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const formErrors = validateForm(form);
+    const formErrors = validateForm(form, { occupiedTimeSlots });
     setErrors(formErrors);
     if (Object.keys(formErrors).length === 0) {
       onSubmit(form);
@@ -59,8 +81,15 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
           onChange={(e) => updateField('name', e.target.value)}
           onBlur={() => handleBlur('name')}
           disabled={isLoading}
+          autoComplete="name"
+          aria-invalid={Boolean(errors.name)}
+          aria-describedby={errors.name ? 'name-error' : undefined}
         />
-        {errors.name && <p className={styles.errorText}>{errors.name}</p>}
+        {errors.name && (
+          <p id="name-error" className={styles.errorText}>
+            {errors.name}
+          </p>
+        )}
       </div>
 
       <div className={styles.field}>
@@ -73,11 +102,22 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
           type="tel"
           placeholder="+7 (___) ___-__-__"
           value={form.phone}
-          onChange={(e) => updateField('phone', e.target.value)}
+          onChange={(e) =>
+            updateField('phone', formatPhone(e.target.value, form.phone))
+          }
           onBlur={() => handleBlur('phone')}
           disabled={isLoading}
+          inputMode="tel"
+          autoComplete="tel"
+          maxLength={18}
+          aria-invalid={Boolean(errors.phone)}
+          aria-describedby={errors.phone ? 'phone-error' : undefined}
         />
-        {errors.phone && <p className={styles.errorText}>{errors.phone}</p>}
+        {errors.phone && (
+          <p id="phone-error" className={styles.errorText}>
+            {errors.phone}
+          </p>
+        )}
       </div>
 
       <div className={styles.row}>
@@ -91,11 +131,17 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
             type="date"
             min={today}
             value={form.date}
-            onChange={(e) => updateField('date', e.target.value)}
+            onChange={(e) => handleDateChange(e.target.value)}
             onBlur={() => handleBlur('date')}
             disabled={isLoading}
+            aria-invalid={Boolean(errors.date)}
+            aria-describedby={errors.date ? 'date-error' : undefined}
           />
-          {errors.date && <p className={styles.errorText}>{errors.date}</p>}
+          {errors.date && (
+            <p id="date-error" className={styles.errorText}>
+              {errors.date}
+            </p>
+          )}
         </div>
 
         <div className={styles.field}>
@@ -108,16 +154,36 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
             value={form.time}
             onChange={(e) => updateField('time', e.target.value)}
             onBlur={() => handleBlur('time')}
-            disabled={isLoading}
+            disabled={isLoading || !form.date}
+            aria-invalid={Boolean(errors.time)}
+            aria-describedby={
+              errors.time ? 'time-error' : form.date ? 'time-hint' : undefined
+            }
           >
-            <option value="">Выберите время</option>
+            <option value="">
+              {form.date ? 'Выберите время' : 'Сначала выберите дату'}
+            </option>
             {TIME_SLOTS.map((slot) => (
-              <option key={slot} value={slot}>
-                {slot}
+              <option
+                key={slot}
+                value={slot}
+                disabled={occupiedTimeSlots.includes(slot)}
+              >
+                {slot}{occupiedTimeSlots.includes(slot) ? ' — занято' : ''}
               </option>
             ))}
           </select>
-          {errors.time && <p className={styles.errorText}>{errors.time}</p>}
+          {errors.time ? (
+            <p id="time-error" className={styles.errorText}>
+              {errors.time}
+            </p>
+          ) : (
+            form.date && (
+              <p id="time-hint" className={styles.hintText}>
+                Занятые интервалы недоступны для выбора
+              </p>
+            )
+          )}
         </div>
       </div>
 
@@ -135,8 +201,14 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
           onChange={(e) => updateField('guests', Number(e.target.value))}
           onBlur={() => handleBlur('guests')}
           disabled={isLoading}
+          aria-invalid={Boolean(errors.guests)}
+          aria-describedby={errors.guests ? 'guests-error' : undefined}
         />
-        {errors.guests && <p className={styles.errorText}>{errors.guests}</p>}
+        {errors.guests && (
+          <p id="guests-error" className={styles.errorText}>
+            {errors.guests}
+          </p>
+        )}
       </div>
 
       <button type="submit" className={styles.submitButton} disabled={isLoading}>
