@@ -5,6 +5,9 @@ import {
   TIME_SLOTS,
   formatPhoneInput,
   getBusySlots,
+  getMaxBookingDateValue,
+  getTodayDateValue,
+  isDateInBookingRange,
   validateField,
   validateForm,
 } from '@/utils/validation';
@@ -26,11 +29,18 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
   const [form, setForm] = useState<BookingFormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateValue();
+  const maxDate = getMaxBookingDateValue();
   const isLoading = status === 'loading';
   const busySlots = getBusySlots(form.date);
 
-  function handleDateChange(value: string) {
+  function handleDateChange(value: string, input: HTMLInputElement) {
+    if (value && !isDateInBookingRange(value, today, maxDate)) {
+      input.value = form.date;
+      setForm((prev) => ({ ...prev }));
+      return;
+    }
+
     setForm((prev) => {
       const nextBusy = getBusySlots(value);
       const time = nextBusy.includes(prev.time) ? '' : prev.time;
@@ -106,8 +116,9 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
             className={`${styles.input} ${errors.date ? styles.inputError : ''}`}
             type="date"
             min={today}
+            max={maxDate}
             value={form.date}
-            onChange={(e) => handleDateChange(e.target.value)}
+            onChange={(e) => handleDateChange(e.target.value, e.currentTarget)}
             onBlur={() => handleBlur('date')}
             disabled={isLoading}
           />

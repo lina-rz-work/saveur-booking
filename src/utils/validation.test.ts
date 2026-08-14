@@ -3,15 +3,22 @@ import { BookingFormData } from '@/types/booking';
 import {
   formatPhoneInput,
   getBusySlots,
+  getMaxBookingDateValue,
+  getTodayDateValue,
+  isDateInBookingRange,
+  isValidDateInput,
   validateField,
   validateForm,
   validatePhone,
 } from './validation';
 
+const futureDate = new Date();
+futureDate.setDate(futureDate.getDate() + 30);
+
 const baseForm: BookingFormData = {
   name: 'Иван Иванов',
   phone: '+7 (999) 123-45-67',
-  date: '2099-01-01',
+  date: getTodayDateValue(futureDate),
   time: '18:00',
   guests: 4,
 };
@@ -54,6 +61,43 @@ describe('formatPhoneInput', () => {
   it('возвращает пустую строку для пустого ввода', () => {
     expect(formatPhoneInput('')).toBe('');
   });
+
+  it('не восстанавливает закрывающую скобку при удалении номера', () => {
+    const withoutBracket = formatPhoneInput('+7 (111)'.slice(0, -1));
+    expect(withoutBracket).toBe('+7 (111');
+
+    const withoutLastDigit = formatPhoneInput(withoutBracket.slice(0, -1));
+    expect(withoutLastDigit).toBe('+7 (11');
+  });
+});
+
+describe('isValidDateInput', () => {
+  it('принимает существующую дату с четырёхзначным годом', () => {
+    expect(isValidDateInput('2028-02-29')).toBe(true);
+  });
+
+  it('отклоняет год длиннее четырёх цифр', () => {
+    expect(isValidDateInput('275760-08-14')).toBe(false);
+  });
+
+  it('отклоняет несуществующую календарную дату', () => {
+    expect(isValidDateInput('2027-02-29')).toBe(false);
+  });
+
+  it('формирует сегодняшнюю дату в локальном часовом поясе', () => {
+    expect(getTodayDateValue(new Date(2026, 7, 14))).toBe('2026-08-14');
+  });
+
+  it('ограничивает бронирование одним годом вперёд', () => {
+    const now = new Date(2026, 7, 14);
+    const minDate = getTodayDateValue(now);
+    const maxDate = getMaxBookingDateValue(now);
+
+    expect(maxDate).toBe('2027-08-14');
+    expect(isDateInBookingRange('2027-08-14', minDate, maxDate)).toBe(true);
+    expect(isDateInBookingRange('2027-08-15', minDate, maxDate)).toBe(false);
+    expect(isDateInBookingRange('5555-08-14', minDate, maxDate)).toBe(false);
+  });
 });
 
 describe('validateField: name', () => {
@@ -77,7 +121,25 @@ describe('validateField: date', () => {
   });
 
   it('принимает будущую дату', () => {
-    expect(validateField('date', { ...baseForm, date: '2099-01-01' })).toBeNull();
+    expect(validateField('date', baseForm)).toBeNull();
+  });
+
+  it('отклоняет год длиннее четырёх цифр', () => {
+    expect(
+      validateField('date', { ...baseForm, date: '275760-08-14' })
+    ).not.toBeNull();
+  });
+
+  it('отклоняет несуществующую дату', () => {
+    expect(
+      validateField('date', { ...baseForm, date: '2099-02-29' })
+    ).not.toBeNull();
+  });
+
+  it('отклоняет дату дальше одного года от текущей', () => {
+    expect(
+      validateField('date', { ...baseForm, date: '5555-08-14' })
+    ).not.toBeNull();
   });
 });
 
