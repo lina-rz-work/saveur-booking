@@ -86,7 +86,7 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
           id="phone"
           className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
           type="tel"
-          placeholder="+7 (___) ___-__-__"
+          placeholder="+7 ___ ___ __ __"
           value={form.phone}
           onChange={(e) => updateField('phone', formatPhoneInput(e.target.value))}
           onBlur={() => handleBlur('phone')}
