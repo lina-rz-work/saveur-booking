@@ -48,6 +48,30 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
     });
   }
 
+  function openDatePicker(input: HTMLInputElement) {
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+      } catch {
+      }
+    }
+  }
+
+  function handleDateKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Tab' || event.key === 'Escape') return;
+
+    event.preventDefault();
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      openDatePicker(event.currentTarget);
+      return;
+    }
+
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      handleDateChange('', event.currentTarget);
+    }
+  }
+
   function updateField<K extends keyof BookingFormData>(
     field: K,
     value: BookingFormData[K]
@@ -113,12 +137,18 @@ export default function BookingForm({ status, onSubmit }: BookingFormProps) {
           </label>
           <input
             id="date"
-            className={`${styles.input} ${errors.date ? styles.inputError : ''}`}
+            className={`${styles.input} ${styles.dateInput} ${
+              errors.date ? styles.inputError : ''
+            }`}
             type="date"
             min={today}
             max={maxDate}
             value={form.date}
             onChange={(e) => handleDateChange(e.target.value, e.currentTarget)}
+            onClick={(e) => openDatePicker(e.currentTarget)}
+            onKeyDown={handleDateKeyDown}
+            onPaste={(e) => e.preventDefault()}
+            onDrop={(e) => e.preventDefault()}
             onBlur={() => handleBlur('date')}
             disabled={isLoading}
           />

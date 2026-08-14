@@ -86,13 +86,22 @@ button {
 }
 
 .viewSwap {
-  animation: view-swap 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
 }
 
-@keyframes view-swap {
+.viewSwapEnter {
+  animation: view-enter 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.viewSwapExit {
+  pointer-events: none;
+  animation: view-exit 0.18s ease-in both;
+}
+
+@keyframes view-enter {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(14px) scale(0.985);
   }
   to {
     opacity: 1;
@@ -100,9 +109,21 @@ button {
   }
 }
 
+@keyframes view-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card,
-  .viewSwap {
+  .viewSwapEnter,
+  .viewSwapExit {
     animation: none;
   }
 }
