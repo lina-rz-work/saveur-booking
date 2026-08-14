@@ -85,6 +85,28 @@ button {
   }
 }
 
+.viewSwap {
+  animation: view-swap 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes view-swap {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .viewSwap {
+    animation: none;
+  }
+}
+
 @media (max-width: 375px) {
   .card {
     padding: 20px;

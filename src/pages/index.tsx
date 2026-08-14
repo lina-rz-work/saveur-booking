@@ -30,16 +30,20 @@ export default function Home() {
       <main className="page">
         <div className="card">
           {status !== 'success' ? (
-            <>
+            <div className="viewSwap" key="form">
               <p className="brand">SAVEUR</p>
               <h1 className="title">Бронирование столика</h1>
               <p className="subtitle">
                 Заполните форму — мы подтвердим бронь и будем ждать вас в ресторане.
               </p>
               <BookingForm status={status} onSubmit={handleSubmit} />
-            </>
+            </div>
           ) : (
-            bookingData && <ConfirmationScreen data={bookingData} onReset={handleReset} />
+            bookingData && (
+              <div className="viewSwap" key="confirmation">
+                <ConfirmationScreen data={bookingData} onReset={handleReset} />
+              </div>
+            )
           )}
         </div>
       </main>
